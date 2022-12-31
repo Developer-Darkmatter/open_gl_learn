@@ -1,3 +1,2 @@
-class Mesh {
+#include "Mesh.h"
 
-};
