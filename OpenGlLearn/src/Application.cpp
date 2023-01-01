@@ -8,6 +8,7 @@
 #include"Renderer.h"
 #include "Shader.h"
 #include "VertexArray.h"
+#include "VertexBufferLayout.h"
 
 
 int main()
@@ -80,6 +81,8 @@ int main()
         unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
         glUseProgram(shader);*/
 
+        Renderer renderer;
+
         GLCall(shader.SetUniform4f("u_Color",0.8f, 0.3f, 0.8f, 1.0f ));
 
         float r = 0.0f;
@@ -93,16 +96,15 @@ int main()
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
-            glClear(GL_COLOR_BUFFER_BIT);
+
+            renderer.Clear();
+            
             GLClearError();
 
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
-            
-            va.Bind();
-            ib.Bind();
 
-            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+            renderer.Draw(va, ib, shader);
 
             if (r > 1.0f)
             {
