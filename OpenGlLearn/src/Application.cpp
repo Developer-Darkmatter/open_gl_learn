@@ -51,10 +51,10 @@ int main()
 
     {
         float positions[] = {
-            -0.5f, -0.5f, 0.0f, 0.0f,
-            0.5f, -0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, 1.0f, 1.0f,
-            -0.5f, 0.5f, 0.0f, 1.0f
+            -110.5f, -110.5f, 0.0f, 0.0f,
+            110.5f, -110.5f, 1.0f, 0.0f,
+            110.5f, 110.5f, 1.0f, 1.0f,
+            -110.5f, 110.5f, 0.0f, 1.0f
         };
 
         unsigned int indices[] = {
@@ -78,7 +78,7 @@ int main()
 
         IndexBuffer ib(indices, 6);
 
-        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+      
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
@@ -89,11 +89,10 @@ int main()
         glUseProgram(shader);*/
 
         Renderer renderer;
-        Texture texture("res/textures/sample_texture.jpg");
+        Texture texture("res/textures/sample_texture.png");
         texture.Bind(0);
         GLCall(shader.SetUniform1i("u_Texture", 0 ));
-        shader.SetUniformMat4f("u_MVP", proj);
-
+        
         float r = 0.0f;
         float increment = 0.05f;
 
@@ -105,6 +104,8 @@ int main()
         /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
+             int width, height;
+            glfwGetWindowSize(window, &width, &height);
             /* Render here */
 
             renderer.Clear();
@@ -113,6 +114,10 @@ int main()
 
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
+
+            glm::mat4 proj = glm::ortho(0.0f, (float)width, 0.0f,  (float)height, -1.0f, 1.0f);
+            shader.SetUniformMat4f("u_MVP", proj);
+
 
             renderer.Draw(va, ib, shader);
 
