@@ -7,8 +7,11 @@
 #include"IndexBuffer.h"
 #include"Renderer.h"
 #include "Shader.h"
+#include "Texture.h"
 #include "VertexArray.h"
 #include "VertexBufferLayout.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 
 int main()
@@ -48,10 +51,10 @@ int main()
 
     {
         float positions[] = {
-            -0.5f, -0.5f,
-            0.5f, -0.5f,
-            0.5f, 0.5f,
-            -0.5f, 0.5f,
+            -0.5f, -0.5f, 0.0f, 0.0f,
+            0.5f, -0.5f, 1.0f, 0.0f,
+            0.5f, 0.5f, 1.0f, 1.0f,
+            -0.5f, 0.5f, 0.0f, 1.0f
         };
 
         unsigned int indices[] = {
@@ -59,19 +62,23 @@ int main()
             2, 3, 0
         };
 
-        unsigned int vao;
-
+        
+        GLCall(glEnable(GL_BLEND));
+        GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_COLOR));
         VertexArray va;
 
-        VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+        VertexBuffer vb(positions, 4 * 4 * sizeof(float));
 
         //Define layout
         VertexBufferLayout layout;
+        layout.Push<float>(2);
         layout.Push<float>(2);
         va.AddBuffer(vb, layout);
 
 
         IndexBuffer ib(indices, 6);
+
+        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
@@ -82,8 +89,10 @@ int main()
         glUseProgram(shader);*/
 
         Renderer renderer;
-
-        GLCall(shader.SetUniform4f("u_Color",0.8f, 0.3f, 0.8f, 1.0f ));
+        Texture texture("res/textures/sample_texture.jpg");
+        texture.Bind(0);
+        GLCall(shader.SetUniform1i("u_Texture", 0 ));
+        shader.SetUniformMat4f("u_MVP", proj);
 
         float r = 0.0f;
         float increment = 0.05f;
@@ -92,13 +101,14 @@ int main()
         vb.Unbind();
         ib.Unbind();
 
+
         /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
 
             renderer.Clear();
-            
+
             GLClearError();
 
             shader.Bind();
