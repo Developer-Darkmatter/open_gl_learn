@@ -21,7 +21,6 @@ void Renderer::Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& 
 {
     
     shader.Bind();
-   // shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
             
     va.Bind();
     ib.Bind();

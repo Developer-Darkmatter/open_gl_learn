@@ -12,6 +12,9 @@
 #include "VertexBufferLayout.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 
 
 int main()
@@ -22,6 +25,7 @@ int main()
     if (!glfwInit())
         return -1;
 
+    const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -39,6 +43,14 @@ int main()
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    ImGui::CreateContext();
+
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
     GLenum err = glewInit();
 
@@ -51,10 +63,10 @@ int main()
 
     {
         float positions[] = {
-            -110.5f, -110.5f, 0.0f, 0.0f,
-            110.5f, -110.5f, 1.0f, 0.0f,
-            110.5f, 110.5f, 1.0f, 1.0f,
-            -110.5f, 110.5f, 0.0f, 1.0f
+            -50.0f, -50.0f, 0.0f, 0.0f,
+            50.0f, -50.0f, 1.0f, 0.0f,
+           50.0f, 50.0f, 1.0f, 1.0f,
+            -50.0f, 50.0f, 0.0f, 1.0f
         };
 
         unsigned int indices[] = {
@@ -75,19 +87,20 @@ int main()
         layout.Push<float>(2);
         va.AddBuffer(vb, layout);
 
-
         IndexBuffer ib(indices, 6);
-
-      
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
 
-        /*ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
-
-        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-        glUseProgram(shader);*/
-
+        
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        glm::mat4 proj = glm::ortho(0.0f, (float)width, 0.0f,  (float)height, -1.0f, 1.0f);
+        glm::vec3 translationA(0, 0, 0);
+        glm::vec3 translationB(0, 0, 0);
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), translationA);
+      
+        
         Renderer renderer;
         Texture texture("res/textures/sample_texture.png");
         texture.Bind(0);
@@ -100,27 +113,48 @@ int main()
         vb.Unbind();
         ib.Unbind();
 
-
-        /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
-             int width, height;
-            glfwGetWindowSize(window, &width, &height);
             /* Render here */
 
             renderer.Clear();
+            
+          
 
+            // Start the Dear ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+            {
+                ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
+
+                ImGui::SliderFloat3("Translate A", &translationA.x, 0.0f, width);
+                ImGui::SliderFloat3("Translate B", &translationB.x, 0.0f, width);
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                ImGui::End();
+            }
             GLClearError();
 
-            shader.Bind();
-            shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
 
-            glm::mat4 proj = glm::ortho(0.0f, (float)width, 0.0f,  (float)height, -1.0f, 1.0f);
-            shader.SetUniformMat4f("u_MVP", proj);
+            {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), translationA);
+                glm::mat4 mvp = proj * view * model;
+                shader.Bind();
+                shader.SetUniformMat4f("u_MVP", mvp);
+                renderer.Draw(va, ib, shader);
+                
+            }
 
-
-            renderer.Draw(va, ib, shader);
-
+            {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), translationB);
+                glm::mat4 mvp = proj * view * model;
+                shader.SetUniformMat4f("u_MVP", mvp);
+                renderer.Draw(va, ib, shader);
+            }
+         
             if (r > 1.0f)
             {
                 increment = -0.05f;
@@ -130,14 +164,27 @@ int main()
                 increment = 0.05f;
             }
             r += increment;
+            
 
-            /* Swap front and back buffers */
+            // Rendering
+            ImGui::Render();
+            int display_w, display_h;
+            glfwGetFramebufferSize(window, &display_w, &display_h);
+            glViewport(0, 0, display_w, display_h);
+           
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            
             glfwSwapBuffers(window);
-
             /* Poll for and process events */
             glfwPollEvents();
+
         }
     }
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
 }
