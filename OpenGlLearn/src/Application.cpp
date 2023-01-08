@@ -15,6 +15,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "test/TestClearColor.h"
+#include "test/Test.h"
 
 
 int main()
@@ -61,111 +63,40 @@ int main()
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    {
-        float positions[] = {
-            -50.0f, -50.0f, 0.0f, 0.0f,
-            50.0f, -50.0f, 1.0f, 0.0f,
-           50.0f, 50.0f, 1.0f, 1.0f,
-            -50.0f, 50.0f, 0.0f, 1.0f
-        };
+    {       
 
-        unsigned int indices[] = {
-            0, 1, 2,
-            2, 3, 0
-        };
-
-        
-        GLCall(glEnable(GL_BLEND));
-        GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_COLOR));
-        VertexArray va;
-
-        VertexBuffer vb(positions, 4 * 4 * sizeof(float));
-
-        //Define layout
-        VertexBufferLayout layout;
-        layout.Push<float>(2);
-        layout.Push<float>(2);
-        va.AddBuffer(vb, layout);
-
-        IndexBuffer ib(indices, 6);
-
-        Shader shader("res/shaders/Basic.shader");
-        shader.Bind();
-
-        
-        int width, height;
-        glfwGetWindowSize(window, &width, &height);
-        glm::mat4 proj = glm::ortho(0.0f, (float)width, 0.0f,  (float)height, -1.0f, 1.0f);
-        glm::vec3 translationA(0, 0, 0);
-        glm::vec3 translationB(0, 0, 0);
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), translationA);
-      
-        
         Renderer renderer;
-        Texture texture("res/textures/sample_texture.png");
-        texture.Bind(0);
-        GLCall(shader.SetUniform1i("u_Texture", 0 ));
-        
-        float r = 0.0f;
-        float increment = 0.05f;
 
-        shader.Unbind();
-        vb.Unbind();
-        ib.Unbind();
+        test::Test* currentTest = nullptr;
+        test::TestMenu* testMenu = new test::TestMenu(currentTest);
+        currentTest = testMenu;
+
+        testMenu->RegisterTest<test::TestClearColor>("Clear Color");
 
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
-
+            GLCall(glClearColor(0.0f, 0.0f, 0.0f, 1.0f))
             renderer.Clear();
-            
-          
-
             // Start the Dear ImGui frame
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
-
-            // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+            if(currentTest)
             {
-                ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
-
-                ImGui::SliderFloat3("Translate A", &translationA.x, 0.0f, width);
-                ImGui::SliderFloat3("Translate B", &translationB.x, 0.0f, width);
-
-                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                currentTest->OnUpdate(0.0f);
+                currentTest->OnRender();
+                ImGui::Begin("Test");
+                if(currentTest != testMenu && ImGui::Button("<-"))
+                {
+                    delete currentTest;
+                    currentTest = testMenu;
+                }
+                currentTest->OnImGui();
                 ImGui::End();
             }
-            GLClearError();
-
-
-            {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), translationA);
-                glm::mat4 mvp = proj * view * model;
-                shader.Bind();
-                shader.SetUniformMat4f("u_MVP", mvp);
-                renderer.Draw(va, ib, shader);
-                
-            }
-
-            {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), translationB);
-                glm::mat4 mvp = proj * view * model;
-                shader.SetUniformMat4f("u_MVP", mvp);
-                renderer.Draw(va, ib, shader);
-            }
-         
-            if (r > 1.0f)
-            {
-                increment = -0.05f;
-            }
-            else if (r < 0.0f)
-            {
-                increment = 0.05f;
-            }
-            r += increment;
             
-
+          
             // Rendering
             ImGui::Render();
             int display_w, display_h;
@@ -173,12 +104,16 @@ int main()
             glViewport(0, 0, display_w, display_h);
            
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
             
             glfwSwapBuffers(window);
             /* Poll for and process events */
             glfwPollEvents();
-
+            
+        }
+        delete currentTest;
+        if(currentTest != testMenu)
+        {
+            delete testMenu;
         }
     }
     ImGui_ImplGlfw_Shutdown();
